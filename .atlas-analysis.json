@@ -1,0 +1,96 @@
+{
+  "projectType": "api-service",
+  "projectName": "User Management API",
+  "projectDescription": "Production-ready RESTful API for user management with complete CRUD operations built with Spring Boot and hexagonal architecture.",
+  "theme": "aspen",
+  "primaryColor": "#2563eb",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/hexagonal",
+              "architecture/cqrs",
+              "architecture/domain-driven-design"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/installation",
+              "guides/configuration",
+              "guides/docker",
+              "guides/testing"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/extending",
+              "development/troubleshooting"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/users/register",
+              "api/users/get-all",
+              "api/users/get-by-id",
+              "api/users/update",
+              "api/users/delete"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "api/models/user",
+              "api/models/user-role",
+              "api/models/error-responses"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Complete CRUD operations for user management",
+    "Hexagonal architecture with clean separation of concerns",
+    "CQRS pattern for optimized data access",
+    "OpenAPI/Swagger documentation",
+    "PostgreSQL persistence with JPA",
+    "Centralized exception handling with RFC 7807 Problem Details",
+    "Domain-driven design principles",
+    "Docker support with Cloud Build CI/CD",
+    "Flyway database migrations",
+    "Comprehensive test coverage with Jacoco"
+  ],
+  "publicApiSurface": [
+    "POST /api/v1/users - Register a new user",
+    "GET /api/v1/users - Get all users",
+    "GET /api/v1/users/{id} - Get user by ID",
+    "PUT /api/v1/users/{id} - Update user by ID",
+    "DELETE /api/v1/users/{id} - Delete user by ID",
+    "GET /swagger-ui/index.html - Interactive API documentation",
+    "GET /api-docs - OpenAPI JSON specification",
+    "GET /actuator/health - Health check endpoint"
+  ]
+}
