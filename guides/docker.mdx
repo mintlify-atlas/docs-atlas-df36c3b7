@@ -1,0 +1,512 @@
+---
+title: Docker Deployment
+description: Build and run the User Management API using Docker and Docker Compose
+---
+
+The User Management API includes full Docker support for containerized deployment. This guide covers building Docker images, running containers, and using Docker Compose for local development.
+
+## Dockerfile Overview
+
+The application uses a production-ready multi-stage Dockerfile:
+
+```dockerfile Dockerfile
+FROM eclipse-temurin:21-jre-jammy
+
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+
+WORKDIR /deployments
+
+COPY build/libs/*.jar app.jar
+
+RUN chown -R spring:spring /deployments
+
+USER spring:spring
+
+EXPOSE 8080
+
+ENTRYPOINT ["java","-jar","/deployments/app.jar"]
+```
+
+<Note>
+  The image uses **Eclipse Temurin JRE 21** (a lightweight Java runtime) and follows security best practices by running as a non-root user.
+</Note>
+
+## Building the Docker Image
+
+<Steps>
+  <Step title="Build the Application JAR">
+    First, build the Spring Boot application using Gradle:
+    
+    ```bash
+    ./gradlew build
+    ```
+    
+    This creates the JAR file in `build/libs/user-management-api-0.0.1-SNAPSHOT.jar`.
+    
+    <Tip>
+      Use `./gradlew bootJar -x test` to skip tests if you've already run them.
+    </Tip>
+  </Step>
+
+  <Step title="Build the Docker Image">
+    Build the Docker image with a tag:
+    
+    ```bash
+    docker build -t user-management-api .
+    ```
+    
+    Or with a specific version:
+    
+    ```bash
+    docker build -t user-management-api:1.0.0 .
+    ```
+  </Step>
+
+  <Step title="Verify the Image">
+    List Docker images to confirm the build:
+    
+    ```bash
+    docker images | grep user-management-api
+    ```
+    
+    You should see:
+    ```
+    user-management-api    latest    abc123def456    2 minutes ago    300MB
+    ```
+  </Step>
+</Steps>
+
+## Running with Docker
+
+### Basic Run Command
+
+Run the container with environment variables:
+
+```bash
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/user_db \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=password \
+  -e ENVIRONMENT=local \
+  user-management-api
+```
+
+<Warning>
+  When running in Docker, `localhost` refers to the container itself. Use `host.docker.internal` (Mac/Windows) or the host IP address (Linux) to connect to PostgreSQL on your host machine.
+</Warning>
+
+### Corrected Connection for Host Database
+
+<CodeGroup>
+
+```bash macOS/Windows
+docker run -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/user_db \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=password \
+  -e ENVIRONMENT=local \
+  user-management-api
+```
+
+```bash Linux
+docker run -p 8080:8080 \
+  --add-host=host.docker.internal:host-gateway \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/user_db \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=password \
+  -e ENVIRONMENT=local \
+  user-management-api
+```
+
+</CodeGroup>
+
+### Run in Detached Mode
+
+Run the container in the background:
+
+```bash
+docker run -d -p 8080:8080 \
+  --name user-api \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/user_db \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=password \
+  -e ENVIRONMENT=local \
+  user-management-api
+```
+
+Check logs:
+
+```bash
+docker logs -f user-api
+```
+
+## Docker Compose (Recommended)
+
+For local development, Docker Compose provides a complete environment with both the API and PostgreSQL database.
+
+### Docker Compose Configuration
+
+Create a `docker-compose.yml` file in the project root:
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: user-db
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - user-api-network
+
+  api:
+    build: .
+    container_name: user-api
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/user_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      ENVIRONMENT: local
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - user-api-network
+
+volumes:
+  postgres_data:
+
+networks:
+  user-api-network:
+    driver: bridge
+```
+
+<Note>
+  The API service waits for the database to be healthy before starting, ensuring proper initialization order.
+</Note>
+
+### Starting with Docker Compose
+
+<Steps>
+  <Step title="Build the Application">
+    Build the Spring Boot JAR:
+    
+    ```bash
+    ./gradlew build
+    ```
+  </Step>
+
+  <Step title="Start All Services">
+    Start both the database and API:
+    
+    ```bash
+    docker compose up --build
+    ```
+    
+    The `--build` flag rebuilds the image if the code has changed.
+  </Step>
+
+  <Step title="Verify Services are Running">
+    Check service status:
+    
+    ```bash
+    docker compose ps
+    ```
+    
+    You should see both `user-db` and `user-api` running.
+  </Step>
+
+  <Step title="Access the Application">
+    The API is now available at:
+    
+    - API: http://localhost:8080
+    - Swagger UI: http://localhost:8080/swagger-ui/index.html
+    - Health Check: http://localhost:8080/actuator/health
+  </Step>
+</Steps>
+
+### Managing Docker Compose
+
+<CodeGroup>
+
+```bash Start (Detached)
+docker compose up -d
+```
+
+```bash Stop Services
+docker compose stop
+```
+
+```bash Stop and Remove
+docker compose down
+```
+
+```bash Stop and Remove with Volumes
+docker compose down -v
+```
+
+```bash View Logs
+docker compose logs -f
+```
+
+```bash View API Logs Only
+docker compose logs -f api
+```
+
+```bash Rebuild and Restart
+docker compose up --build --force-recreate
+```
+
+</CodeGroup>
+
+## Environment Variables Reference
+
+All configuration can be overridden with environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENVIRONMENT` | `local` | Active Spring profile |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/user_db` | Database JDBC URL |
+| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username |
+| `SPRING_DATASOURCE_PASSWORD` | `password` | Database password |
+
+### Using Environment Files
+
+Create a `.env` file for Docker Compose:
+
+```bash .env
+ENVIRONMENT=local
+SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/user_db
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=password
+```
+
+Update `docker-compose.yml`:
+
+```yaml docker-compose.yml
+services:
+  api:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+```
+
+<Warning>
+  Never commit `.env` files with real credentials to version control. Add `.env` to your `.gitignore`.
+</Warning>
+
+## Production Deployment
+
+### Cloud Run Deployment
+
+The project includes Google Cloud Build configuration for automated deployment:
+
+```yaml cloudbuild.yaml
+steps:
+  # Run tests
+  - name: 'gradle:8.5-jdk21'
+    entrypoint: 'gradle'
+    args: ['test']
+
+  # Build JAR
+  - name: 'gradle:8.5-jdk21'
+    entrypoint: 'gradle'
+    args: ['bootJar', '-x', 'test']
+
+  # Build and push Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    script: |
+      IMAGE_NAME="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE}"
+      docker build -t "${IMAGE_NAME}:${SHORT_SHA}" -t "${IMAGE_NAME}:latest" .
+      docker push "${IMAGE_NAME}:${SHORT_SHA}"
+      docker push "${IMAGE_NAME}:latest"
+
+  # Deploy to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "${_SERVICE}"
+      - "--image"
+      - "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:$SHORT_SHA"
+      - "--set-secrets"
+      - "SPRING_DATASOURCE_URL=CONTABO_DB_URL:latest,SPRING_DATASOURCE_USERNAME=CONTABO_DB_USER:latest,SPRING_DATASOURCE_PASSWORD=CONTABO_DB_PASSWORD:latest"
+```
+
+<Note>
+  The CI/CD pipeline automatically runs tests, builds the Docker image, and deploys to Cloud Run with secrets from Secret Manager.
+</Note>
+
+### Pushing to Container Registry
+
+<CodeGroup>
+
+```bash Docker Hub
+# Tag the image
+docker tag user-management-api:latest username/user-management-api:latest
+
+# Push to Docker Hub
+docker push username/user-management-api:latest
+```
+
+```bash Google Artifact Registry
+# Tag the image
+docker tag user-management-api:latest us-central1-docker.pkg.dev/project-id/repo/user-management-api:latest
+
+# Push to Artifact Registry
+docker push us-central1-docker.pkg.dev/project-id/repo/user-management-api:latest
+```
+
+```bash AWS ECR
+# Authenticate
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin account-id.dkr.ecr.us-east-1.amazonaws.com
+
+# Tag the image
+docker tag user-management-api:latest account-id.dkr.ecr.us-east-1.amazonaws.com/user-management-api:latest
+
+# Push to ECR
+docker push account-id.dkr.ecr.us-east-1.amazonaws.com/user-management-api:latest
+```
+
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to database from container">
+    **Problem**: API container cannot reach PostgreSQL.
+    
+    **Solution**:
+    - Use `host.docker.internal` instead of `localhost`
+    - On Linux, add `--add-host=host.docker.internal:host-gateway`
+    - Or use Docker Compose to run both services in the same network
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    **Problem**: Port 8080 is already bound.
+    
+    **Solution**: Change the host port mapping:
+    ```bash
+    docker run -p 8081:8080 user-management-api
+    ```
+  </Accordion>
+
+  <Accordion title="Image build fails">
+    **Problem**: Docker build cannot find the JAR file.
+    
+    **Solution**: Ensure you've built the application first:
+    ```bash
+    ./gradlew build
+    ls -la build/libs/
+    docker build -t user-management-api .
+    ```
+  </Accordion>
+
+  <Accordion title="Container keeps restarting">
+    **Problem**: Container starts but immediately exits.
+    
+    **Solution**: Check the logs:
+    ```bash
+    docker logs user-api
+    ```
+    
+    Common issues:
+    - Database connection failure
+    - Missing environment variables
+    - Port conflicts
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    **Problem**: Container runs out of memory.
+    
+    **Solution**: Increase container memory or add JVM options:
+    ```bash
+    docker run -p 8080:8080 \
+      -e JAVA_OPTS="-Xmx512m -Xms256m" \
+      user-management-api
+    ```
+    
+    Update the Dockerfile:
+    ```dockerfile
+    ENTRYPOINT ["java","-Xmx512m","-Xms256m","-jar","/deployments/app.jar"]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Use Multi-Stage Builds">
+    For production, consider a multi-stage build that compiles the application inside Docker:
+    
+    ```dockerfile
+    FROM gradle:8.5-jdk21 AS builder
+    WORKDIR /app
+    COPY . .
+    RUN gradle bootJar -x test
+
+    FROM eclipse-temurin:21-jre-jammy
+    WORKDIR /deployments
+    COPY --from=builder /app/build/libs/*.jar app.jar
+    EXPOSE 8080
+    ENTRYPOINT ["java","-jar","/deployments/app.jar"]
+    ```
+  </Step>
+
+  <Step title="Optimize Image Size">
+    - Use JRE instead of JDK (already done)
+    - Use Alpine-based images for smaller size
+    - Clean up unnecessary files
+    - Use `.dockerignore` to exclude build artifacts
+  </Step>
+
+  <Step title="Security Hardening">
+    - Run as non-root user (already implemented)
+    - Use specific image versions, not `latest`
+    - Scan images for vulnerabilities: `docker scan user-management-api`
+    - Use secrets management for production
+  </Step>
+
+  <Step title="Health Checks">
+    Add a Docker health check:
+    
+    ```dockerfile
+    HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+      CMD curl -f http://localhost:8080/actuator/health || exit 1
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Learn about configuration options
+  </Card>
+  <Card title="Testing" icon="flask" href="/guides/testing">
+    Understand the testing strategy
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/users/register">
+    Explore the API endpoints
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Learn about hexagonal architecture
+  </Card>
+</CardGroup>

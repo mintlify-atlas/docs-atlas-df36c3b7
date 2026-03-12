@@ -1,0 +1,209 @@
+---
+title: "Update User"
+description: "Update an existing user's information"
+api: "PUT /api/v1/users/{id}"
+---
+
+## Endpoint
+
+```
+PUT /api/v1/users/{id}
+```
+
+Updates an existing user's information. Note that the username cannot be changed after registration.
+
+## Path Parameters
+
+<ParamField path="id" type="UUID" required>
+  Unique user identifier.
+  
+  **Example:** `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+</ParamField>
+
+## Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be a valid email format.
+  
+  **Validation:**
+  - Required
+  - Must be a valid email address
+  
+  **Example:** `jdoe@jdoe.com`
+</ParamField>
+
+<ParamField body="firstName" type="string" required>
+  User's first name.
+  
+  **Validation:**
+  - Required
+  - Max length: 100 characters
+  
+  **Example:** `Jane`
+</ParamField>
+
+<ParamField body="lastName" type="string" required>
+  User's last name.
+  
+  **Validation:**
+  - Required
+  - Max length: 100 characters
+  
+  **Example:** `Doe II`
+</ParamField>
+
+<ParamField body="role" type="enum" required>
+  User's role in the system.
+  
+  **Validation:**
+  - Required
+  - Must be one of: `ADMIN`, `USER`, `GUEST`
+  
+  **Example:** `ADMIN`
+</ParamField>
+
+<ParamField body="active" type="boolean" required>
+  Whether the user account is active.
+  
+  **Validation:**
+  - Required
+  
+  **Example:** `true`
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="UUID">
+  Unique identifier for the user.
+  
+  **Example:** `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The user's username (unchanged).
+  
+  **Example:** `jdoe`
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The updated email address.
+  
+  **Example:** `jdoe@jdoe.com`
+</ResponseField>
+
+<ResponseField name="firstName" type="string">
+  The updated first name.
+  
+  **Example:** `Jane`
+</ResponseField>
+
+<ResponseField name="lastName" type="string">
+  The updated last name.
+  
+  **Example:** `Doe II`
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  The updated role.
+  
+  **Example:** `ADMIN`
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp when the user was created (unchanged).
+  
+  **Example:** `2024-01-15T10:30:00`
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp when the user was last updated.
+  
+  **Example:** `2024-01-15T10:35:00`
+</ResponseField>
+
+<ResponseField name="active" type="boolean">
+  Whether the user account is active.
+  
+  **Example:** `true`
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  User updated successfully
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Validation error - one or more required fields are missing or invalid
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  User with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  An unexpected error occurred
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/users/0f4df2de-fffb-4a24-9891-381ecf4f0f87 \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "email": "jdoe@jdoe.com",
+    "firstName": "Jane",
+    "lastName": "Doe II",
+    "role": "ADMIN",
+    "active": true
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "username": "jdoe",
+  "email": "jdoe@jdoe.com",
+  "firstName": "Jane",
+  "lastName": "Doe II",
+  "role": "ADMIN",
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-15T10:35:00",
+  "active": true
+}
+```
+
+## Error Response Examples
+
+### Validation Error (400)
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "email: email must be a valid email address; firstName: first_name is required",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### User Not Found (404)
+
+```json
+{
+  "type": "about:blank",
+  "title": "User Not Found",
+  "status": 404,
+  "detail": "User not found with id: 0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "userId": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+## Notes
+
+- The `username` field is immutable and cannot be changed after user creation
+- The `updatedAt` timestamp is automatically updated when changes are made
+- Setting `active` to `false` deactivates the user account without deleting it

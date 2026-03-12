@@ -1,0 +1,74 @@
+---
+title: 'UserRole'
+description: 'Enumeration of valid user roles in the system'
+---
+
+The `UserRole` enum defines the access levels available for users in the system.
+
+## Enum Values
+
+<ResponseField name="ADMIN" type="enum value">
+  Administrator role with full system access
+  
+  Users with the `ADMIN` role have elevated privileges and can perform administrative operations such as managing all users in the system.
+</ResponseField>
+
+<ResponseField name="USER" type="enum value">
+  Standard user role with regular access
+  
+  The `USER` role is the default role for most users, providing standard access to user management features.
+</ResponseField>
+
+<ResponseField name="GUEST" type="enum value">
+  Guest role with limited access
+  
+  Users with the `GUEST` role have restricted access to the system, typically with read-only or limited permissions.
+</ResponseField>
+
+## Usage in API Requests
+
+The `UserRole` is used in both registration and update operations:
+
+### Register User Example
+
+```json
+{
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "USER"
+}
+```
+
+### Update User Example
+
+```json
+{
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "ADMIN",
+  "active": true
+}
+```
+
+## Validation
+
+When provided in API requests:
+- The role field is **required** and cannot be null
+- Must be one of the three valid values: `ADMIN`, `USER`, or `GUEST`
+- Case-sensitive (must be uppercase)
+- Invalid values will result in a validation error
+
+### Error Example
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "role: role is required and must be one of: ADMIN, USER, GUEST",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```

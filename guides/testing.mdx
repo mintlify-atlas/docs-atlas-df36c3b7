@@ -1,0 +1,595 @@
+---
+title: Testing
+description: Learn about the testing strategy, running tests, and maintaining code quality in the User Management API
+---
+
+The User Management API follows a comprehensive testing strategy with unit tests, integration tests, and code coverage reporting. The project maintains **80% code coverage** as a quality standard.
+
+## Testing Overview
+
+The application uses a layered testing approach that aligns with its hexagonal architecture:
+
+<CardGroup cols={3}>
+  <Card title="Unit Tests" icon="microscope">
+    Test business logic in isolation using Mockito
+  </Card>
+  <Card title="Integration Tests" icon="globe">
+    Test REST endpoints with MockMvc
+  </Card>
+  <Card title="Coverage Reports" icon="chart-line">
+    Track coverage with Jacoco
+  </Card>
+</CardGroup>
+
+## Testing Stack
+
+The project uses the following testing technologies:
+
+- **JUnit 5** - Testing framework
+- **Mockito** - Mocking framework
+- **AssertJ** - Fluent assertions
+- **Spring Test** - Spring-specific testing support
+- **MockMvc** - Testing REST controllers
+- **Testcontainers** - Integration testing with real databases
+- **H2** - In-memory database for tests
+- **Jacoco** - Code coverage reporting
+
+## Running Tests
+
+### Run All Tests
+
+<CodeGroup>
+
+```bash Gradle (Linux/macOS)
+./gradlew test
+```
+
+```bash Gradle (Windows)
+.\gradlew.bat test
+```
+
+```bash With Coverage Report
+./gradlew test jacocoTestReport
+```
+
+</CodeGroup>
+
+The test task is configured in `build.gradle`:
+
+```gradle build.gradle
+test {
+    systemProperty 'spring.profiles.active', 'test'
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+```
+
+<Note>
+  Tests automatically use the `test` profile and generate a Jacoco coverage report after completion.
+</Note>
+
+### Run Specific Test Classes
+
+```bash
+./gradlew test --tests "*UserRestAdapterTest"
+```
+
+### Run Specific Test Methods
+
+```bash
+./gradlew test --tests "*UserRestAdapterTest.createUser_success"
+```
+
+### Run Tests in IDE
+
+<Tabs>
+  <Tab title="IntelliJ IDEA">
+    - Right-click on test file or method
+    - Select "Run 'TestName'" or press `Ctrl+Shift+F10` (Windows/Linux) or `Cmd+Shift+R` (macOS)
+    - View results in the Run tool window
+  </Tab>
+  
+  <Tab title="Eclipse">
+    - Right-click on test file
+    - Select "Run As > JUnit Test"
+    - View results in the JUnit view
+  </Tab>
+  
+  <Tab title="VS Code">
+    - Install Java Test Runner extension
+    - Click the play button next to test methods
+    - View results in the Test Explorer
+  </Tab>
+</Tabs>
+
+## Test Structure
+
+Tests are organized in the same package structure as the source code:
+
+```
+src/test/java/com/fbaron/user/
+├── core/
+│   ├── model/
+│   │   └── UserTest.java
+│   └── usecase/
+│       ├── RegisterUserUseCaseTest.java
+│       ├── FindUserByIdUseCaseTest.java
+│       ├── FindAllUsersUseCaseTest.java
+│       ├── EditUserUseCaseTest.java
+│       └── RemoveUserUseCaseTest.java
+├── data/
+│   └── jpa/
+│       └── UserJpaAdapterTest.java
+└── web/
+    └── rest/
+        └── UserRestAdapterTest.java
+```
+
+<Tip>
+  Test files follow the naming convention `{ClassName}Test.java` and are located in the same package as the class they test.
+</Tip>
+
+## Unit Testing
+
+Unit tests focus on the **core** business logic without Spring context.
+
+### Example: Use Case Test
+
+Here's an example of testing the `RegisterUserUseCase`:
+
+```java RegisterUserUseCaseTest.java
+@ExtendWith(MockitoExtension.class)
+public class RegisterUserUseCaseTest {
+
+    @Mock
+    private UserQueryRepository userQueryRepository;
+
+    @Mock
+    private UserCommandRepository userCommandRepository;
+
+    private UserService underTest;
+
+    @BeforeEach
+    void setUp() {
+        underTest = new UserService(userQueryRepository, userCommandRepository);
+    }
+
+    @Test
+    @DisplayName("should register user when username and email are unique")
+    void register_success() {
+        // Given
+        given(userQueryRepository.existsByUsername("jdoe")).willReturn(false);
+        given(userQueryRepository.existsByEmail("john@example.com")).willReturn(false);
+        given(userCommandRepository.save(any(User.class))).willReturn(savedUser);
+
+        var userToRegister = buildUser(null);
+
+        // When
+        User result = underTest.register(userToRegister);
+
+        // Then
+        assertThat(result.getId()).isEqualTo(userId);
+        assertThat(result.getUsername()).isEqualTo("jdoe");
+        then(userCommandRepository).should().save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("should throw UserAlreadyExistsException when username is taken")
+    void register_duplicateUsername_throws() {
+        // Given
+        given(userQueryRepository.existsByUsername("jdoe")).willReturn(true);
+        var userToRegister = buildUser(null);
+
+        // When & Then
+        assertThatThrownBy(() -> underTest.register(userToRegister))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessageContaining("username");
+
+        then(userCommandRepository).should(never()).save(any());
+    }
+}
+```
+
+### Key Testing Patterns
+
+<Steps>
+  <Step title="Use Mockito for Dependencies">
+    Mock external dependencies with `@Mock` annotation:
+    
+    ```java
+    @Mock
+    private UserQueryRepository userQueryRepository;
+    ```
+  </Step>
+
+  <Step title="Use BDD Style with Given-When-Then">
+    Structure tests using BDD style:
+    
+    ```java
+    given(repository.existsByUsername("jdoe")).willReturn(false);
+    User result = service.register(user);
+    then(repository).should().save(any(User.class));
+    ```
+  </Step>
+
+  <Step title="Use AssertJ for Fluent Assertions">
+    Write readable assertions:
+    
+    ```java
+    assertThat(result.getUsername()).isEqualTo("jdoe");
+    assertThatThrownBy(() -> service.register(user))
+        .isInstanceOf(UserAlreadyExistsException.class);
+    ```
+  </Step>
+
+  <Step title="Use @DisplayName for Clarity">
+    Add descriptive test names:
+    
+    ```java
+    @DisplayName("should register user when username and email are unique")
+    void register_success() { ... }
+    ```
+  </Step>
+</Steps>
+
+## Integration Testing
+
+Integration tests use `@WebMvcTest` to test REST controllers with the web layer.
+
+### Example: REST Adapter Test
+
+```java UserRestAdapterTest.java
+@WebMvcTest(UserRestAdapter.class)
+@Import({UserDtoMapperImpl.class, GlobalExceptionHandler.class})
+class UserRestAdapterTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private RegisterUserUseCase registerUserUseCase;
+
+    @Test
+    @DisplayName("POST /api/v1/users — should return 201 with created user")
+    void createUser_success() throws Exception {
+        var user = buildDomainModelUser("jdoe", "john@example.com");
+        given(registerUserUseCase.register(any())).willReturn(user);
+
+        RegisterUserDto request = new RegisterUserDto(
+            "jdoe", "john@example.com", "John", "Doe", UserRole.USER
+        );
+
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value(userId.toString()))
+            .andExpect(jsonPath("$.username").value("jdoe"))
+            .andExpect(jsonPath("$.email").value("john@example.com"));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/users — should return 400 when username is blank")
+    void createUser_invalidRequest_returns400() throws Exception {
+        RegisterUserDto request = new RegisterUserDto(
+            "", "john@example.com", "John", "Doe", UserRole.USER
+        );
+
+        mockMvc.perform(post("/api/v1/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.title").value("Validation Failed"));
+    }
+}
+```
+
+<Note>
+  `@WebMvcTest` creates a lightweight Spring context with only the web layer, making tests fast and focused.
+</Note>
+
+### MockMvc Test Patterns
+
+<Tabs>
+  <Tab title="POST Request">
+    ```java
+    mockMvc.perform(post("/api/v1/users")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").exists());
+    ```
+  </Tab>
+  
+  <Tab title="GET Request">
+    ```java
+    mockMvc.perform(get("/api/v1/users/{id}", userId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.username").value("jdoe"));
+    ```
+  </Tab>
+  
+  <Tab title="PUT Request">
+    ```java
+    mockMvc.perform(put("/api/v1/users/{id}", userId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk());
+    ```
+  </Tab>
+  
+  <Tab title="DELETE Request">
+    ```java
+    mockMvc.perform(delete("/api/v1/users/{id}", userId))
+        .andExpect(status().isNoContent());
+    ```
+  </Tab>
+</Tabs>
+
+## Code Coverage with Jacoco
+
+The project uses **Jacoco** for code coverage analysis.
+
+### Configuration
+
+```gradle build.gradle
+jacoco {
+    toolVersion = "0.8.12"
+    reportsDirectory = layout.buildDirectory.dir('reports/jacoco/test/html/')
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = false
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/tests/test/')
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                "**/*mapper/**",
+                "**/*dto/**",
+                "**/*Entity/**",
+                "**/*Config.class"
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80 // 80% coverage required
+            }
+        }
+    }
+}
+```
+
+<Note>
+  DTOs, mappers, entities, and configuration classes are excluded from coverage as they contain minimal logic.
+</Note>
+
+### Generating Coverage Reports
+
+<Steps>
+  <Step title="Run Tests with Coverage">
+    ```bash
+    ./gradlew test jacocoTestReport
+    ```
+    
+    This runs all tests and generates the coverage report.
+  </Step>
+
+  <Step title="View the Report">
+    Open the HTML report in your browser:
+    
+    ```bash
+    open build/reports/tests/test/index.html
+    ```
+    
+    Or on Linux:
+    ```bash
+    xdg-open build/reports/tests/test/index.html
+    ```
+  </Step>
+
+  <Step title="Check Coverage Percentage">
+    The report shows:
+    - Overall coverage percentage
+    - Coverage by package
+    - Coverage by class
+    - Line-by-line coverage highlighting
+  </Step>
+</Steps>
+
+### Coverage Report Location
+
+- **HTML Report**: `build/reports/tests/test/index.html`
+- **XML Report**: `build/reports/jacoco/test/jacocoTestReport.xml`
+
+<Tip>
+  The project enforces a minimum of **80% code coverage**. The build will fail if coverage drops below this threshold.
+</Tip>
+
+## Writing Effective Tests
+
+### Test Naming Convention
+
+Use descriptive names that explain what is being tested:
+
+```java
+@Test
+@DisplayName("should throw UserNotFoundException when user does not exist")
+void getUserById_notFound_throwsException() {
+    // Test implementation
+}
+```
+
+### Arrange-Act-Assert Pattern
+
+Structure tests with clear sections:
+
+```java
+@Test
+void testExample() {
+    // Arrange (Given)
+    User user = User.builder().username("jdoe").build();
+    given(repository.findById(userId)).willReturn(Optional.of(user));
+    
+    // Act (When)
+    User result = service.getUserById(userId);
+    
+    // Assert (Then)
+    assertThat(result.getUsername()).isEqualTo("jdoe");
+}
+```
+
+### Test Edge Cases
+
+Test not only the happy path but also:
+
+- Invalid input
+- Null values
+- Empty collections
+- Duplicate data
+- Not found scenarios
+- Concurrent operations
+
+### Use Test Fixtures
+
+Create reusable test data builders:
+
+```java
+private User buildUser(String username, String email) {
+    return User.builder()
+        .id(UUID.randomUUID())
+        .username(username)
+        .email(email)
+        .firstName("John")
+        .lastName("Doe")
+        .role(UserRole.USER)
+        .createdAt(LocalDateTime.now())
+        .updatedAt(LocalDateTime.now())
+        .active(true)
+        .build();
+}
+```
+
+## Continuous Integration Testing
+
+The project includes CI/CD configuration for automated testing:
+
+```yaml cloudbuild.yaml
+steps:
+  # Run Gradle Tests
+  - name: 'gradle:8.5-jdk21'
+    entrypoint: 'gradle'
+    args: ['test']
+    env:
+      - 'DOCKER_HOST=unix:///remote/docker.sock'
+      - 'TESTCONTAINERS_RYUK_DISABLED=true'
+```
+
+<Note>
+  Tests run automatically on every push to the repository using Google Cloud Build.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Test in Isolation" icon="circle">
+    Unit tests should not depend on external services or databases
+  </Card>
+  <Card title="Fast Execution" icon="bolt">
+    Tests should run quickly to enable rapid feedback
+  </Card>
+  <Card title="Independent Tests" icon="shuffle">
+    Tests should be able to run in any order
+  </Card>
+  <Card title="Clear Assertions" icon="check">
+    Use descriptive assertions that clearly show what failed
+  </Card>
+  <Card title="Mock External Dependencies" icon="plug">
+    Use mocks for repositories, external APIs, and services
+  </Card>
+  <Card title="Test Behavior, Not Implementation" icon="eye">
+    Focus on what the code does, not how it does it
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Tests fail with database connection error">
+    **Problem**: Tests cannot connect to the database.
+    
+    **Solution**: Tests should use the `test` profile with H2 in-memory database. Ensure `spring.profiles.active` is set to `test` in the test configuration.
+  </Accordion>
+
+  <Accordion title="Coverage report not generated">
+    **Problem**: Jacoco report is missing.
+    
+    **Solution**: Run tests with the report task:
+    ```bash
+    ./gradlew test jacocoTestReport
+    ```
+    
+    The report will be in `build/reports/tests/test/index.html`.
+  </Accordion>
+
+  <Accordion title="Specific test fails in CI but passes locally">
+    **Problem**: Test passes on local machine but fails in CI.
+    
+    **Solution**: Common causes:
+    - Time zone differences
+    - Environment variables
+    - File system case sensitivity
+    - Random data generation
+    
+    Use fixed test data and explicit time zones.
+  </Accordion>
+
+  <Accordion title="MockMvc returns 404 for valid endpoint">
+    **Problem**: REST endpoint test returns 404.
+    
+    **Solution**: Ensure:
+    - `@WebMvcTest` includes the correct controller
+    - URL path in test matches controller mapping
+    - Controller is properly annotated with `@RestController`
+  </Accordion>
+
+  <Accordion title="Build fails with 'coverage below minimum'">
+    **Problem**: Jacoco reports coverage below 80%.
+    
+    **Solution**: Add more tests to increase coverage:
+    ```bash
+    ./gradlew test jacocoTestReport
+    ```
+    
+    Open the report to see which classes need more tests.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/guides/installation">
+    Set up your development environment
+  </Card>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Learn about configuration options
+  </Card>
+  <Card title="Docker Setup" icon="docker" href="/guides/docker">
+    Run tests in Docker
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Understand the system design
+  </Card>
+</CardGroup>

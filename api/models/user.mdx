@@ -1,0 +1,214 @@
+---
+title: 'User Model'
+description: 'User object structure and related DTOs for the User Management API'
+---
+
+## UserDto (Response)
+
+The User object returned by the API contains the following fields:
+
+<ResponseField name="id" type="string (UUID)" required>
+  Unique identifier for the user
+  
+  Example: `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+</ResponseField>
+
+<ResponseField name="username" type="string" required>
+  Unique username for the user account
+  
+  Example: `jdoe`
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Email address of the user
+  
+  Example: `jdoe@example.com`
+</ResponseField>
+
+<ResponseField name="firstName" type="string" required>
+  User's first name
+  
+  Example: `John`
+</ResponseField>
+
+<ResponseField name="lastName" type="string" required>
+  User's last name
+  
+  Example: `Doe`
+</ResponseField>
+
+<ResponseField name="role" type="UserRole" required>
+  User's role in the system. See [UserRole](/api/models/user-role) for possible values.
+  
+  Example: `USER`
+</ResponseField>
+
+<ResponseField name="active" type="boolean" required>
+  Whether the user account is active
+  
+  Example: `true`
+</ResponseField>
+
+<ResponseField name="createdAt" type="string (ISO 8601 DateTime)" required>
+  Timestamp when the user was created
+  
+  Example: `2024-01-15T10:30:00`
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string (ISO 8601 DateTime)" required>
+  Timestamp when the user was last updated
+  
+  Example: `2024-01-15T10:30:00`
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "id": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "USER",
+  "active": true,
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-15T10:30:00"
+}
+```
+
+---
+
+## RegisterUserDto (Request)
+
+Payload for registering a new user via `POST /api/users`:
+
+<ResponseField name="username" type="string" required>
+  Unique username for the new user
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Length: 3-50 characters
+  
+  Example: `jdoe`
+</ResponseField>
+
+<ResponseField name="email" type="string" required>
+  Email address for the new user
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Must be a valid email format
+  
+  Example: `jdoe@example.com`
+</ResponseField>
+
+<ResponseField name="firstName" type="string" required>
+  User's first name
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Maximum length: 100 characters
+  
+  Example: `John`
+</ResponseField>
+
+<ResponseField name="lastName" type="string" required>
+  User's last name
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Maximum length: 100 characters
+  
+  Example: `Doe`
+</ResponseField>
+
+<ResponseField name="role" type="UserRole" required>
+  Role to assign to the new user
+  
+  **Validation:**
+  - Required (cannot be null)
+  - Must be one of: `ADMIN`, `USER`, `GUEST`
+  
+  Example: `USER`
+</ResponseField>
+
+### Example Request
+
+```json
+{
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "USER"
+}
+```
+
+---
+
+## EditUserDto (Request)
+
+Payload for updating an existing user via `PUT /api/users/{id}`:
+
+<Note>
+  The `username` field is **immutable** after user creation and cannot be updated.
+</Note>
+
+<ResponseField name="email" type="string" required>
+  Updated email address for the user
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Must be a valid email format
+  
+  Example: `jdoe@example.com`
+</ResponseField>
+
+<ResponseField name="firstName" type="string" required>
+  Updated first name
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Maximum length: 100 characters
+  
+  Example: `John`
+</ResponseField>
+
+<ResponseField name="lastName" type="string" required>
+  Updated last name
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Maximum length: 100 characters
+  
+  Example: `Doe`
+</ResponseField>
+
+<ResponseField name="role" type="UserRole" required>
+  Updated role for the user
+  
+  **Validation:**
+  - Required (cannot be null)
+  - Must be one of: `ADMIN`, `USER`, `GUEST`
+  
+  Example: `USER`
+</ResponseField>
+
+<ResponseField name="active" type="boolean" required>
+  Whether the user account should be active
+  
+  Example: `true`
+</ResponseField>
+
+### Example Request
+
+```json
+{
+  "email": "john.doe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "ADMIN",
+  "active": true
+}
+```

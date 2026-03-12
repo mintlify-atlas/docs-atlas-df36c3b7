@@ -1,0 +1,119 @@
+---
+title: 'Get All Users'
+description: 'Retrieve a list of all registered users'
+api: 'GET /api/v1/users'
+---
+
+## Endpoint
+
+```
+GET /api/v1/users
+```
+
+Retrieves a list of all registered users in the system.
+
+## Request
+
+This endpoint does not require any parameters.
+
+## Response
+
+Returns an array of user objects.
+
+<ResponseField name="[]" type="array">
+  Array of user objects
+  
+  <ResponseField name="id" type="UUID">
+    Unique identifier for the user.
+    
+    **Example:** `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+  </ResponseField>
+  
+  <ResponseField name="username" type="string">
+    The user's username.
+    
+    **Example:** `jdoe`
+  </ResponseField>
+  
+  <ResponseField name="email" type="string">
+    The user's email address.
+    
+    **Example:** `jdoe@example.com`
+  </ResponseField>
+  
+  <ResponseField name="firstName" type="string">
+    The user's first name.
+    
+    **Example:** `John`
+  </ResponseField>
+  
+  <ResponseField name="lastName" type="string">
+    The user's last name.
+    
+    **Example:** `Doe`
+  </ResponseField>
+  
+  <ResponseField name="role" type="string">
+    The user's role.
+    
+    **Example:** `USER`
+  </ResponseField>
+  
+  <ResponseField name="createdAt" type="string">
+    ISO 8601 timestamp when the user was created.
+    
+    **Example:** `2024-01-15T10:30:00`
+  </ResponseField>
+  
+  <ResponseField name="updatedAt" type="string">
+    ISO 8601 timestamp when the user was last updated.
+    
+    **Example:** `2024-01-15T10:30:00`
+  </ResponseField>
+  
+  <ResponseField name="active" type="boolean">
+    Whether the user account is active.
+    
+    **Example:** `true`
+  </ResponseField>
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="200" type="OK">
+  Users retrieved successfully
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  An unexpected error occurred
+</ResponseField>
+
+## Example Request
+
+```bash
+curl http://localhost:8080/api/v1/users
+```
+
+## Example Response
+
+```json
+[
+  {
+    "id": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+    "username": "jdoe",
+    "email": "jdoe@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "USER",
+    "createdAt": "2024-01-15T10:30:00",
+    "updatedAt": "2024-01-15T10:30:00",
+    "active": true
+  }
+]
+```
+
+## Notes
+
+- Returns an empty array `[]` if no users are registered
+- Users are returned in the order they were created
+- Both active and inactive users are included in the response

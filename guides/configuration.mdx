@@ -1,0 +1,347 @@
+---
+title: Configuration
+description: Learn how to configure the User Management API for different environments
+---
+
+The User Management API uses Spring Boot's configuration system with YAML files and environment variables for flexible configuration across different environments.
+
+## Configuration Files
+
+The application uses a multi-profile configuration approach:
+
+<CardGroup cols={2}>
+  <Card title="application.yaml" icon="file">
+    Main configuration file with production defaults
+  </Card>
+  <Card title="application-local.yaml" icon="laptop-code">
+    Local development overrides with verbose logging
+  </Card>
+</CardGroup>
+
+### File Locations
+
+- `src/main/resources/application.yaml` - Main configuration
+- `src/main/resources/application-local.yaml` - Local development profile
+- `src/main/resources/db/migration/` - Flyway database migrations
+
+## Core Configuration
+
+### Application Properties
+
+```yaml application.yaml
+spring:
+  application:
+    name: user-management-api
+
+  profiles:
+    active: ${ENVIRONMENT:local}
+```
+
+<Note>
+  The active profile defaults to `local` and can be overridden with the `ENVIRONMENT` environment variable.
+</Note>
+
+## Database Configuration
+
+### DataSource Settings
+
+The application uses PostgreSQL as its primary database:
+
+```yaml application.yaml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/user_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+```
+
+<Warning>
+  Never commit database credentials to version control. Use environment variables for production deployments.
+</Warning>
+
+### JPA and Hibernate
+
+Production settings:
+
+```yaml application.yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+```
+
+Local development settings:
+
+```yaml application-local.yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    defer-datasource-initialization: false
+```
+
+<Tip>
+  The `local` profile enables SQL logging and formatting for easier debugging.
+</Tip>
+
+### Flyway Migrations
+
+Flyway handles database schema versioning:
+
+```yaml application.yaml
+spring:
+  flyway:
+    enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+```
+
+Migration scripts are located in `src/main/resources/db/migration/` and follow the naming pattern `V{version}__{description}.sql`.
+
+## Environment Variables
+
+The following environment variables can be used to override configuration:
+
+### Required Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENVIRONMENT` | `local` | Active Spring profile (local, dev, prod) |
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/user_db` | Database JDBC URL |
+| `SPRING_DATASOURCE_USERNAME` | `postgres` | Database username |
+| `SPRING_DATASOURCE_PASSWORD` | `password` | Database password |
+
+### Example Usage
+
+<CodeGroup>
+
+```bash Linux/macOS
+export ENVIRONMENT=prod
+export SPRING_DATASOURCE_URL=jdbc:postgresql://prod-db:5432/user_db
+export SPRING_DATASOURCE_USERNAME=prod_user
+export SPRING_DATASOURCE_PASSWORD=secure_password
+
+./gradlew bootRun
+```
+
+```bash Windows (PowerShell)
+$env:ENVIRONMENT="prod"
+$env:SPRING_DATASOURCE_URL="jdbc:postgresql://prod-db:5432/user_db"
+$env:SPRING_DATASOURCE_USERNAME="prod_user"
+$env:SPRING_DATASOURCE_PASSWORD="secure_password"
+
+.\gradlew.bat bootRun
+```
+
+```bash Docker
+docker run -p 8080:8080 \
+  -e ENVIRONMENT=prod \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://prod-db:5432/user_db \
+  -e SPRING_DATASOURCE_USERNAME=prod_user \
+  -e SPRING_DATASOURCE_PASSWORD=secure_password \
+  user-management-api
+```
+
+</CodeGroup>
+
+## Actuator Configuration
+
+Spring Boot Actuator provides health checks and monitoring endpoints:
+
+```yaml application.yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+```
+
+### Available Endpoints
+
+| Endpoint | URL | Description |
+|----------|-----|-------------|
+| Health Check | `/actuator/health` | Application health status |
+| Info | `/actuator/info` | Application information |
+
+<Tip>
+  The health endpoint is used by Cloud Run and other platforms for readiness and liveness probes.
+</Tip>
+
+## OpenAPI Configuration
+
+OpenAPI documentation is configured in the `local` profile:
+
+```yaml application-local.yaml
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    displayRequestDuration: true
+    defaultModelsExpandDepth: 1
+    defaultModelExpandDepth: 1
+    tryItOutEnabled: true
+    filter: true
+  show-actuator: false
+  packages-to-scan: com.fbaron.user
+  paths-to-match: /api/**
+```
+
+### Accessing Documentation
+
+- **Swagger UI**: http://localhost:8080/swagger-ui/index.html
+- **OpenAPI JSON**: http://localhost:8080/api-docs
+
+<Note>
+  OpenAPI documentation is enabled in the `local` profile for development. Consider security implications before enabling in production.
+</Note>
+
+## Profile-Specific Configuration
+
+### Local Profile
+
+Activated automatically by default, provides:
+
+- Verbose SQL logging (`show-sql: true`)
+- Formatted SQL output (`format_sql: true`)
+- Database schema validation (`ddl-auto: validate`)
+- Enabled Swagger UI
+
+### Production Profile
+
+Optimized for production:
+
+- Minimal logging (`show-sql: false`)
+- No schema generation (`ddl-auto: none`)
+- Environment-specific database credentials
+- Actuator endpoints for monitoring
+
+## Configuration Best Practices
+
+<Steps>
+  <Step title="Use Environment Variables for Secrets">
+    Never hardcode credentials. Use environment variables for sensitive data:
+    
+    ```yaml
+    spring:
+      datasource:
+        password: ${SPRING_DATASOURCE_PASSWORD}
+    ```
+  </Step>
+
+  <Step title="Separate Profiles by Environment">
+    Create profile-specific files for different environments:
+    
+    - `application-local.yaml` - Local development
+    - `application-dev.yaml` - Development server
+    - `application-prod.yaml` - Production
+  </Step>
+
+  <Step title="Override with External Configuration">
+    Place an `application.yaml` outside the JAR for runtime overrides:
+    
+    ```bash
+    java -jar app.jar --spring.config.location=/config/application.yaml
+    ```
+  </Step>
+
+  <Step title="Use Configuration Validation">
+    Validate configuration on startup using Spring's `@ConfigurationProperties` with validation annotations.
+  </Step>
+</Steps>
+
+## Cloud Deployment Configuration
+
+For Google Cloud Run deployment (as configured in `cloudbuild.yaml`), secrets are managed via Secret Manager:
+
+```yaml cloudbuild.yaml
+--set-secrets
+SPRING_DATASOURCE_URL=CONTABO_DB_URL:latest,
+SPRING_DATASOURCE_USERNAME=CONTABO_DB_USER:latest,
+SPRING_DATASOURCE_PASSWORD=CONTABO_DB_PASSWORD:latest
+```
+
+<Warning>
+  When deploying to cloud platforms, use their native secret management services instead of environment variables.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Configuration not loading">
+    Ensure the profile is active:
+    
+    ```bash
+    ./gradlew bootRun --args='--spring.profiles.active=local'
+    ```
+    
+    Check the startup logs for:
+    ```
+    The following profiles are active: local
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection errors">
+    Verify your database configuration:
+    
+    1. Check PostgreSQL is running: `pg_isready`
+    2. Verify credentials in `application.yaml`
+    3. Test connection: `psql -h localhost -U postgres -d user_db`
+  </Accordion>
+
+  <Accordion title="Flyway migration failures">
+    If migrations fail:
+    
+    1. Check migration scripts in `src/main/resources/db/migration/`
+    2. Verify baseline: `spring.flyway.baseline-on-migrate=true`
+    3. Check Flyway history: `SELECT * FROM flyway_schema_history;`
+  </Accordion>
+
+  <Accordion title="Property not being overridden">
+    Check the property precedence:
+    
+    1. Command line arguments (highest priority)
+    2. Environment variables
+    3. Profile-specific YAML files
+    4. Default `application.yaml` (lowest priority)
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Setup" icon="docker" href="/guides/docker">
+    Learn how to run the application in Docker
+  </Card>
+  <Card title="Testing" icon="flask" href="/guides/testing">
+    Understand the testing configuration
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/users/register">
+    Explore the API endpoints
+  </Card>
+  <Card title="Architecture" icon="diagram-project" href="/architecture/overview">
+    Learn about the system architecture
+  </Card>
+</CardGroup>

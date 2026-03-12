@@ -1,0 +1,150 @@
+---
+title: 'Error Responses'
+description: 'Standard error response format using RFC 7807 Problem Details'
+---
+
+The User Management API returns errors using the [RFC 7807 Problem Details](https://tools.ietf.org/html/rfc7807) standard format. All error responses follow this consistent structure.
+
+## Error Response Structure
+
+<ResponseField name="type" type="string">
+  A URI reference that identifies the problem type
+  
+  Example: `about:blank`
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  A short, human-readable summary of the problem type
+  
+  Example: `Validation Failed`
+</ResponseField>
+
+<ResponseField name="status" type="integer">
+  The HTTP status code for this occurrence of the problem
+  
+  Example: `400`
+</ResponseField>
+
+<ResponseField name="detail" type="string">
+  A human-readable explanation specific to this occurrence of the problem
+  
+  Example: `username: username is required`
+</ResponseField>
+
+<ResponseField name="timestamp" type="string (ISO 8601 DateTime)">
+  The timestamp when the error occurred
+  
+  Example: `2024-01-15T10:30:00`
+</ResponseField>
+
+<ResponseField name="[additional properties]" type="varies">
+  Additional context-specific properties may be included based on the error type
+  
+  Example: `userId` for User Not Found errors
+</ResponseField>
+
+## Common Error Types
+
+### Validation Failed (400 Bad Request)
+
+Returned when request validation fails. The `detail` field contains information about which fields failed validation.
+
+**Example: Missing required field**
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "username: username is required",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+**Example: Multiple validation errors**
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "username: username must be between 3 and 50 characters; email: email must be a valid email address",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+**Example: Invalid email format**
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "email: email must be a valid email address",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### User Not Found (404 Not Found)
+
+Returned when attempting to access or modify a user that doesn't exist. Includes the `userId` property.
+
+```json
+{
+  "type": "about:blank",
+  "title": "User Not Found",
+  "status": 404,
+  "detail": "User with id 0f4df2de-fffb-4a24-9891-381ecf4f0f87 not found",
+  "userId": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### User Already Exists (409 Conflict)
+
+Returned when attempting to register a user with a username or email that already exists in the system.
+
+```json
+{
+  "type": "about:blank",
+  "title": "User Already Exists",
+  "status": 409,
+  "detail": "User with username 'jdoe' already exists",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### Internal Server Error (500)
+
+Returned when an unexpected error occurs on the server.
+
+```json
+{
+  "type": "about:blank",
+  "title": "Internal Server Error",
+  "status": 500,
+  "detail": "An unexpected error occurred. Please try again or contact support.",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+## Validation Rules Summary
+
+### Username
+- Required (cannot be blank)
+- Length: 3-50 characters
+- Must be unique
+- Immutable after creation
+
+### Email
+- Required (cannot be blank)
+- Must be valid email format
+- Must be unique
+
+### First Name / Last Name
+- Required (cannot be blank)
+- Maximum length: 100 characters
+
+### Role
+- Required (cannot be null)
+- Must be one of: `ADMIN`, `USER`, `GUEST`

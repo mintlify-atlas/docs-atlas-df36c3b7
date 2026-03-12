@@ -1,0 +1,73 @@
+---
+title: 'Delete User'
+description: 'Soft delete a user from the system'
+api: 'DELETE /api/v1/users/{id}'
+---
+
+## Endpoint
+
+```
+DELETE /api/v1/users/{id}
+```
+
+Performs a soft delete of a user. The user is marked as deleted but not physically removed from the database.
+
+## Path Parameters
+
+<ParamField path="id" type="UUID" required>
+  Unique user identifier.
+  
+  **Example:** `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+</ParamField>
+
+## Response
+
+This endpoint returns no content on success (HTTP 204).
+
+## Status Codes
+
+<ResponseField name="204" type="No Content">
+  User deleted successfully
+</ResponseField>
+
+<ResponseField name="404" type="Not Found">
+  User with the specified ID does not exist
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  An unexpected error occurred
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/users/0f4df2de-fffb-4a24-9891-381ecf4f0f87
+```
+
+## Example Response
+
+**Success (204 No Content):**
+
+No response body is returned. Only the HTTP status code 204 is sent.
+
+## Error Response Example
+
+### User Not Found (404)
+
+```json
+{
+  "type": "about:blank",
+  "title": "User Not Found",
+  "status": 404,
+  "detail": "User not found with id: 0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "userId": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+## Notes
+
+- This operation performs a **soft delete**, meaning the user record is marked as deleted but remains in the database
+- Deleted users will not appear in standard user queries
+- The deletion is idempotent - deleting an already deleted user returns 404
+- Consider implementing a restore endpoint if you need to recover soft-deleted users

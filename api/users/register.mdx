@@ -1,0 +1,196 @@
+---
+title: 'Register User'
+description: 'Create a new user in the system'
+api: 'POST /api/v1/users'
+---
+
+## Endpoint
+
+```
+POST /api/v1/users
+```
+
+Registers a new user in the system. All fields are required and will be validated before the user is created.
+
+## Request Body
+
+<ParamField body="username" type="string" required>
+  Unique username for the user. Must be between 3 and 50 characters.
+  
+  **Validation:**
+  - Required
+  - Min length: 3 characters
+  - Max length: 50 characters
+  
+  **Example:** `jdoe`
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be a valid email format.
+  
+  **Validation:**
+  - Required
+  - Must be a valid email address
+  
+  **Example:** `jdoe@example.com`
+</ParamField>
+
+<ParamField body="firstName" type="string" required>
+  User's first name.
+  
+  **Validation:**
+  - Required
+  - Max length: 100 characters
+  
+  **Example:** `John`
+</ParamField>
+
+<ParamField body="lastName" type="string" required>
+  User's last name.
+  
+  **Validation:**
+  - Required
+  - Max length: 100 characters
+  
+  **Example:** `Doe`
+</ParamField>
+
+<ParamField body="role" type="enum" required>
+  User's role in the system.
+  
+  **Validation:**
+  - Required
+  - Must be one of: `ADMIN`, `USER`, `GUEST`
+  
+  **Example:** `USER`
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="UUID">
+  Unique identifier for the user, automatically generated.
+  
+  **Example:** `0f4df2de-fffb-4a24-9891-381ecf4f0f87`
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The user's username.
+  
+  **Example:** `jdoe`
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The user's email address.
+  
+  **Example:** `jdoe@example.com`
+</ResponseField>
+
+<ResponseField name="firstName" type="string">
+  The user's first name.
+  
+  **Example:** `John`
+</ResponseField>
+
+<ResponseField name="lastName" type="string">
+  The user's last name.
+  
+  **Example:** `Doe`
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  The user's role.
+  
+  **Example:** `USER`
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp when the user was created.
+  
+  **Example:** `2024-01-15T10:30:00`
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp when the user was last updated.
+  
+  **Example:** `2024-01-15T10:30:00`
+</ResponseField>
+
+<ResponseField name="active" type="boolean">
+  Whether the user account is active. New users are active by default.
+  
+  **Example:** `true`
+</ResponseField>
+
+## Status Codes
+
+<ResponseField name="201" type="Created">
+  User created successfully
+</ResponseField>
+
+<ResponseField name="400" type="Bad Request">
+  Validation error - one or more required fields are missing or invalid
+</ResponseField>
+
+<ResponseField name="409" type="Conflict">
+  User with the provided username already exists
+</ResponseField>
+
+<ResponseField name="500" type="Internal Server Error">
+  An unexpected error occurred
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST http://localhost:8080/api/v1/users \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username": "jdoe",
+    "email": "jdoe@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "USER"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "USER",
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-15T10:30:00",
+  "active": true
+}
+```
+
+## Error Response Examples
+
+### Validation Error (400)
+
+```json
+{
+  "type": "about:blank",
+  "title": "Validation Failed",
+  "status": 400,
+  "detail": "username: username is required; email: email must be a valid email address",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```
+
+### User Already Exists (409)
+
+```json
+{
+  "type": "about:blank",
+  "title": "User Already Exists",
+  "status": 409,
+  "detail": "User with username 'jdoe' already exists",
+  "timestamp": "2024-01-15T10:30:00"
+}
+```

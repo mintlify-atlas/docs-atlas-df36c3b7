@@ -1,0 +1,219 @@
+---
+title: Installation
+description: Get started with the User Management API by setting up your development environment
+---
+
+This guide will walk you through installing and running the User Management API on your local machine.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+<CardGroup cols={2}>
+  <Card title="Java 21" icon="java">
+    Required for running the Spring Boot application
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    Database for persistent storage
+  </Card>
+  <Card title="Git" icon="code-branch">
+    For cloning the repository
+  </Card>
+  <Card title="Docker (Optional)" icon="docker">
+    For containerized deployment
+  </Card>
+</CardGroup>
+
+<Note>
+  This project uses **Java 21** as specified in `build.gradle`. Make sure you have the correct version installed.
+</Note>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the project from GitLab:
+    
+    ```bash
+    git clone https://gitlab.com/ferney.estupinan/user-management-api.git
+    cd user-management-api
+    ```
+  </Step>
+
+  <Step title="Set Up PostgreSQL Database">
+    Create a PostgreSQL database for the application:
+    
+    ```sql
+    CREATE DATABASE user_db;
+    ```
+    
+    The application will automatically run Flyway migrations on startup to create the required tables.
+    
+    <Tip>
+      Default credentials are `postgres`/`password`. You can override these in `application-local.yaml` or with environment variables.
+    </Tip>
+  </Step>
+
+  <Step title="Build the Project">
+    Use the Gradle wrapper to build the project:
+    
+    ```bash
+    ./gradlew build
+    ```
+    
+    This command will:
+    - Download all dependencies
+    - Compile the source code
+    - Run all tests
+    - Generate the JAR file in `build/libs/`
+    
+    <Note>
+      The first build may take a few minutes as Gradle downloads dependencies.
+    </Note>
+  </Step>
+
+  <Step title="Run the Application">
+    Start the application using Gradle:
+    
+    ```bash
+    ./gradlew bootRun
+    ```
+    
+    Or run the JAR directly:
+    
+    ```bash
+    java -jar build/libs/user-management-api-0.0.1-SNAPSHOT.jar
+    ```
+    
+    The application will start on `http://localhost:8080` by default.
+  </Step>
+
+  <Step title="Verify Installation">
+    Check that the application is running by accessing the health endpoint:
+    
+    ```bash
+    curl http://localhost:8080/actuator/health
+    ```
+    
+    You should receive a response like:
+    
+    ```json
+    {
+      "status": "UP"
+    }
+    ```
+  </Step>
+</Steps>
+
+## IDE Setup
+
+### IntelliJ IDEA
+
+1. Open IntelliJ IDEA and select **File > Open**
+2. Navigate to the cloned repository and select the root folder
+3. IntelliJ will automatically detect the Gradle project and import it
+4. Wait for dependency resolution to complete
+5. Enable annotation processing: **Settings > Build, Execution, Deployment > Compiler > Annotation Processors** and check "Enable annotation processing"
+
+<Note>
+  The project uses **Lombok** and **MapStruct** annotation processors. Make sure annotation processing is enabled in your IDE.
+</Note>
+
+### Eclipse
+
+1. Open Eclipse and select **File > Import > Gradle > Existing Gradle Project**
+2. Browse to the cloned repository and click **Finish**
+3. Eclipse will import the project and download dependencies
+4. Install the Lombok plugin: Download `lombok.jar` from [projectlombok.org](https://projectlombok.org) and run it
+
+### VS Code
+
+1. Open VS Code and install the following extensions:
+   - **Extension Pack for Java**
+   - **Spring Boot Extension Pack**
+   - **Lombok Annotations Support**
+2. Open the project folder: **File > Open Folder**
+3. VS Code will automatically detect the Gradle project
+
+## Next Steps
+
+Now that you have the application installed, you can:
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Learn how to configure the application
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/users/register">
+    Explore the API endpoints
+  </Card>
+  <Card title="Docker Setup" icon="docker" href="/guides/docker">
+    Run the application in Docker
+  </Card>
+  <Card title="Testing" icon="flask" href="/guides/testing">
+    Learn about the testing strategy
+  </Card>
+</CardGroup>
+
+## Accessing API Documentation
+
+Once the application is running, you can access interactive API documentation:
+
+- **Swagger UI**: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- **OpenAPI JSON**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
+
+<Tip>
+  Use Swagger UI to explore and test all API endpoints interactively.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Port 8080 already in use">
+    If port 8080 is already in use, you can change it by setting the `server.port` property:
+    
+    ```bash
+    ./gradlew bootRun --args='--server.port=8081'
+    ```
+    
+    Or set it in `application-local.yaml`:
+    
+    ```yaml
+    server:
+      port: 8081
+    ```
+  </Accordion>
+
+  <Accordion title="Database connection failed">
+    Ensure PostgreSQL is running and the database `user_db` exists. Verify your connection settings in `application.yaml`:
+    
+    ```yaml
+    spring:
+      datasource:
+        url: jdbc:postgresql://localhost:5432/user_db
+        username: postgres
+        password: password
+    ```
+  </Accordion>
+
+  <Accordion title="Java version mismatch">
+    This project requires Java 21. Check your Java version:
+    
+    ```bash
+    java -version
+    ```
+    
+    If you have multiple Java versions, set `JAVA_HOME` to point to Java 21:
+    
+    ```bash
+    export JAVA_HOME=/path/to/java-21
+    ```
+  </Accordion>
+
+  <Accordion title="Lombok not working in IDE">
+    If Lombok annotations are not being processed:
+    
+    1. Ensure the Lombok plugin is installed in your IDE
+    2. Enable annotation processing in IDE settings
+    3. Invalidate caches and restart the IDE
+  </Accordion>
+</AccordionGroup>

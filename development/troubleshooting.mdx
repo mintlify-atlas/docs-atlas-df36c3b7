@@ -1,0 +1,607 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for the User Management API'
+icon: 'wrench'
+---
+
+This guide helps you diagnose and resolve common issues when developing and running the User Management API.
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Port 8080 Already in Use">
+    **Error Message:**
+    ```
+    Web server failed to start. Port 8080 was already in use.
+    ```
+
+    **Solution 1: Kill the Process**
+    
+    Find and kill the process using port 8080:
+    
+    ```bash
+    # Linux/macOS
+    lsof -ti:8080 | xargs kill -9
+    
+    # Windows
+    netstat -ano | findstr :8080
+    taskkill /PID <PID> /F
+    ```
+
+    **Solution 2: Change the Port**
+    
+    Update `application.yaml` or use an environment variable:
+    
+    ```yaml application.yaml
+    server:
+      port: 8081
+    ```
+    
+    Or via command line:
+    ```bash
+    ./gradlew bootRun --args='--server.port=8081'
+    ```
+  </Accordion>
+
+  <Accordion title="Database Connection Failed">
+    **Error Message:**
+    ```
+    Connection to localhost:5432 refused. Check that the hostname and port are correct
+    and that the postmaster is accepting TCP/IP connections.
+    ```
+
+    **Cause:** PostgreSQL is not running or not accessible.
+
+    **Solution 1: Start PostgreSQL**
+    
+    ```bash
+    # Using Docker
+    docker run -d --name postgres \
+      -e POSTGRES_DB=user_db \
+      -e POSTGRES_USER=postgres \
+      -e POSTGRES_PASSWORD=password \
+      -p 5432:5432 \
+      postgres:16
+    
+    # Check if it's running
+    docker ps
+    ```
+
+    **Solution 2: Verify Connection Settings**
+    
+    Check `application.yaml` or environment variables:
+    
+    ```yaml application.yaml
+    spring:
+      datasource:
+        url: jdbc:postgresql://localhost:5432/user_db
+        username: postgres
+        password: password
+    ```
+
+    **Solution 3: Use Docker Compose**
+    
+    ```bash
+    docker compose up -d db
+    ```
+  </Accordion>
+
+  <Accordion title="Java Version Mismatch">
+    **Error Message:**
+    ```
+    Unsupported class file major version 65
+    ```
+    or
+    ```
+    java.lang.UnsupportedClassVersionError
+    ```
+
+    **Cause:** This project requires Java 21. You're using an older version.
+
+    **Solution:**
+    
+    1. Check your Java version:
+    ```bash
+    java -version
+    ```
+    
+    2. Install Java 21:
+    ```bash
+    # Using SDKMAN!
+    sdk install java 21.0.2-tem
+    sdk use java 21.0.2-tem
+    
+    # Using Homebrew (macOS)
+    brew install openjdk@21
+    
+    # Verify installation
+    java -version
+    ```
+    
+    3. Set JAVA_HOME:
+    ```bash
+    # Linux/macOS
+    export JAVA_HOME=/path/to/java-21
+    
+    # Windows
+    set JAVA_HOME=C:\Program Files\Java\jdk-21
+    ```
+  </Accordion>
+
+  <Accordion title="Flyway Migration Failed">
+    **Error Message:**
+    ```
+    FlywayException: Validate failed: Migration checksum mismatch for migration version 1
+    ```
+
+    **Cause:** Database schema is out of sync with migration files.
+
+    **Solution 1: Repair Flyway**
+    
+    ```bash
+    ./gradlew flywayRepair
+    ```
+
+    **Solution 2: Clean and Rebuild (Development Only)**
+    
+    <Warning>
+      This will delete all data in your database. Only use in development!
+    </Warning>
+    
+    ```bash
+    # Drop and recreate database
+    docker exec -it postgres psql -U postgres -c "DROP DATABASE user_db;"
+    docker exec -it postgres psql -U postgres -c "CREATE DATABASE user_db;"
+    
+    # Restart application
+    ./gradlew bootRun
+    ```
+
+    **Solution 3: Baseline Existing Database**
+    
+    ```yaml application.yaml
+    spring:
+      flyway:
+        baseline-on-migrate: true
+        baseline-version: 0
+    ```
+  </Accordion>
+
+  <Accordion title="MapStruct Generated Code Not Found">
+    **Error Message:**
+    ```
+    Cannot resolve symbol 'UserDtoMapperImpl'
+    ```
+    or
+    ```
+    Could not autowire. No beans of 'UserDtoMapper' type found.
+    ```
+
+    **Cause:** MapStruct annotation processor hasn't generated implementation classes.
+
+    **Solution:**
+    
+    1. Clean and rebuild the project:
+    ```bash
+    ./gradlew clean build
+    ```
+    
+    2. Verify annotation processors are enabled in your IDE:
+    
+    **IntelliJ IDEA:**
+    - Settings → Build, Execution, Deployment → Compiler → Annotation Processors
+    - Check "Enable annotation processing"
+    
+    **Eclipse:**
+    - Right-click project → Properties → Java Compiler → Annotation Processing
+    - Check "Enable project specific settings"
+    
+    3. Rebuild the project:
+    ```bash
+    ./gradlew build --refresh-dependencies
+    ```
+  </Accordion>
+
+  <Accordion title="Lombok Annotations Not Working">
+    **Error Message:**
+    ```
+    Cannot resolve method 'builder()'
+    Cannot resolve method 'getUsername()'
+    ```
+
+    **Cause:** Lombok plugin not installed or annotation processing disabled.
+
+    **Solution:**
+    
+    1. **IntelliJ IDEA:**
+       - Install Lombok plugin: Settings → Plugins → Search "Lombok" → Install
+       - Enable annotation processing: Settings → Build → Compiler → Annotation Processors → Enable
+       - Restart IDE
+    
+    2. **Eclipse:**
+       - Download lombok.jar from https://projectlombok.org/download
+       - Run: `java -jar lombok.jar`
+       - Select Eclipse installation directory
+       - Click "Install/Update"
+    
+    3. **VS Code:**
+       - Install "Lombok Annotations Support" extension
+       - Reload window
+  </Accordion>
+</AccordionGroup>
+
+## Build Errors
+
+<AccordionGroup>
+  <Accordion title="Dependency Resolution Failed">
+    **Error Message:**
+    ```
+    Could not resolve all files for configuration ':compileClasspath'.
+    ```
+
+    **Solution:**
+    
+    ```bash
+    # Clear Gradle cache
+    rm -rf ~/.gradle/caches/
+    
+    # Refresh dependencies
+    ./gradlew clean build --refresh-dependencies
+    ```
+  </Accordion>
+
+  <Accordion title="Gradle Daemon Failed to Start">
+    **Error Message:**
+    ```
+    Unable to start the daemon process.
+    ```
+
+    **Solution:**
+    
+    ```bash
+    # Stop all Gradle daemons
+    ./gradlew --stop
+    
+    # Clear Gradle daemon directory
+    rm -rf ~/.gradle/daemon/
+    
+    # Rebuild
+    ./gradlew build
+    ```
+  </Accordion>
+
+  <Accordion title="Test Failures">
+    **Error Message:**
+    ```
+    There were failing tests. See the report at: build/reports/tests/test/index.html
+    ```
+
+    **Solution:**
+    
+    1. Run tests with verbose output:
+    ```bash
+    ./gradlew test --info
+    ```
+    
+    2. Run specific test class:
+    ```bash
+    ./gradlew test --tests UserServiceTest
+    ```
+    
+    3. Skip tests temporarily (not recommended):
+    ```bash
+    ./gradlew build -x test
+    ```
+    
+    4. Check test reports:
+    ```bash
+    open build/reports/tests/test/index.html
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Runtime Errors
+
+<AccordionGroup>
+  <Accordion title="Bean Creation Exception">
+    **Error Message:**
+    ```
+    Error creating bean with name 'userService': Unsatisfied dependency expressed through constructor parameter 0
+    ```
+
+    **Cause:** Spring cannot find a bean to inject.
+
+    **Solution:**
+    
+    1. Check `UserBeanConfiguration.java` - ensure all required beans are defined:
+    
+    ```java src/main/java/com/fbaron/user/config/UserBeanConfiguration.java
+    @Bean
+    public UserJpaAdapter userJpaAdapter(UserJpaRepository repo, UserJpaMapper mapper) {
+        return new UserJpaAdapter(repo, mapper);
+    }
+    
+    @Bean
+    public UserService userService(UserQueryRepository queryRepo, 
+                                    UserCommandRepository cmdRepo) {
+        return new UserService(queryRepo, cmdRepo);
+    }
+    ```
+    
+    2. Verify component scanning is enabled (it should be by default with `@SpringBootApplication`).
+    
+    3. Check for circular dependencies - use constructor injection, not field injection.
+  </Accordion>
+
+  <Accordion title="Validation Errors Not Returning 400">
+    **Error Message:**
+    API returns 500 instead of 400 for invalid input.
+
+    **Cause:** Missing `@Valid` annotation on controller method parameter.
+
+    **Solution:**
+    
+    Ensure `@Valid` is present on DTO parameters:
+    
+    ```java src/main/java/com/fbaron/user/web/rest/UserRestAdapter.java
+    @PostMapping
+    public ResponseEntity<UserDto> registerUser(
+            @Valid @RequestBody RegisterUserDto dto) {  // @Valid is required
+        // Implementation...
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Swagger UI Not Loading">
+    **Error Message:**
+    404 Not Found when accessing `/swagger-ui/index.html`
+
+    **Solution:**
+    
+    1. Verify the dependency is present in `build.gradle`:
+    ```gradle
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
+    ```
+    
+    2. Access the correct URL:
+    ```
+    http://localhost:8080/swagger-ui/index.html
+    ```
+    
+    3. Check if OpenAPI is configured in `OpenApiConfig.java`:
+    ```java
+    @Configuration
+    public class OpenApiConfig {
+        @Bean
+        public OpenAPI userManagementAPI() {
+            // Configuration...
+        }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="CORS Errors in Browser">
+    **Error Message:**
+    ```
+    Access to fetch at 'http://localhost:8080/api/v1/users' from origin 'http://localhost:3000' 
+    has been blocked by CORS policy
+    ```
+
+    **Solution:**
+    
+    Add CORS configuration:
+    
+    ```java src/main/java/com/fbaron/user/config/WebConfig.java
+    package com.fbaron.user.config;
+    
+    import org.springframework.context.annotation.Configuration;
+    import org.springframework.web.servlet.config.annotation.CorsRegistry;
+    import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+    
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+        
+        @Override
+        public void addCorsMappings(CorsRegistry registry) {
+            registry.addMapping("/api/**")
+                    .allowedOrigins("http://localhost:3000")
+                    .allowedMethods("GET", "POST", "PUT", "DELETE")
+                    .allowedHeaders("*");
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Docker Issues
+
+<AccordionGroup>
+  <Accordion title="Docker Build Fails">
+    **Error Message:**
+    ```
+    ERROR [build 6/6] RUN ./gradlew build
+    ```
+
+    **Solution:**
+    
+    1. Ensure Dockerfile uses correct base image:
+    ```dockerfile
+    FROM eclipse-temurin:21-jdk-alpine AS build
+    ```
+    
+    2. Check `.dockerignore` doesn't exclude necessary files:
+    ```
+    .git
+    build/
+    .gradle/
+    .idea/
+    ```
+    
+    3. Build with no cache:
+    ```bash
+    docker build --no-cache -t user-management-api .
+    ```
+  </Accordion>
+
+  <Accordion title="Container Exits Immediately">
+    **Error Message:**
+    ```
+    docker ps shows container is not running
+    ```
+
+    **Solution:**
+    
+    1. Check container logs:
+    ```bash
+    docker logs <container-id>
+    ```
+    
+    2. Ensure database is accessible from container:
+    ```bash
+    # If using localhost, change to host.docker.internal (macOS/Windows)
+    # Or use Docker network
+    docker run -p 8080:8080 \
+      -e SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/user_db \
+      user-management-api
+    ```
+    
+    3. Use Docker Compose for better networking:
+    ```bash
+    docker compose up
+    ```
+  </Accordion>
+
+  <Accordion title="Cannot Connect to Database from Container">
+    **Error Message:**
+    ```
+    Connection refused: connect
+    ```
+
+    **Cause:** Container cannot reach PostgreSQL on localhost.
+
+    **Solution:**
+    
+    Use Docker Compose and service names:
+    
+    ```yaml docker-compose.yml
+    services:
+      db:
+        image: postgres:16
+        # ...
+      
+      api:
+        build: .
+        environment:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/user_db  # Use service name
+        depends_on:
+          - db
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="Slow Database Queries">
+    **Solution:**
+    
+    1. Enable SQL logging to identify slow queries:
+    ```yaml application.yaml
+    spring:
+      jpa:
+        show-sql: true
+        properties:
+          hibernate:
+            format_sql: true
+    logging:
+      level:
+        org.hibernate.SQL: DEBUG
+        org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    ```
+    
+    2. Add database indexes:
+    ```sql
+    CREATE INDEX idx_users_email ON users(email);
+    CREATE INDEX idx_users_username ON users(username);
+    CREATE INDEX idx_users_active ON users(active);
+    ```
+    
+    3. Use pagination for large result sets:
+    ```java
+    public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
+        Page<UserJpaEntity> findAllByActiveTrue(Pageable pageable);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="High Memory Usage">
+    **Solution:**
+    
+    1. Limit JVM heap size:
+    ```bash
+    ./gradlew bootRun -Dorg.gradle.jvmargs="-Xmx512m -Xms256m"
+    ```
+    
+    2. Use streaming for large datasets:
+    ```java
+    @Transactional(readOnly = true)
+    public Stream<User> findAllStream() {
+        return userRepository.findAll().stream();
+    }
+    ```
+    
+    3. Enable connection pooling in `application.yaml`:
+    ```yaml
+    spring:
+      datasource:
+        hikari:
+          maximum-pool-size: 10
+          minimum-idle: 2
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+<CardGroup cols={2}>
+  <Card title="Check Logs" icon="file-lines">
+    Review application logs for detailed error messages:
+    ```bash
+    ./gradlew bootRun --info
+    ```
+  </Card>
+  
+  <Card title="Enable Debug Mode" icon="bug">
+    Run with debug logging:
+    ```yaml
+    logging:
+      level:
+        com.fbaron.user: DEBUG
+    ```
+  </Card>
+  
+  <Card title="Review Documentation" icon="book">
+    Check the [Spring Boot docs](https://docs.spring.io/spring-boot/docs/current/reference/html/) for framework-specific issues.
+  </Card>
+  
+  <Card title="Community Support" icon="users">
+    Ask questions on [Stack Overflow](https://stackoverflow.com/questions/tagged/spring-boot) with the `spring-boot` tag.
+  </Card>
+</CardGroup>
+
+## Related Resources
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="gear" href="/guides/configuration">
+    Learn about application configuration options
+  </Card>
+  <Card title="Testing Guide" icon="flask" href="/guides/testing">
+    Write tests to catch issues early
+  </Card>
+  <Card title="Extending the App" icon="puzzle-piece" href="/development/extending">
+    Add new features correctly
+  </Card>
+  <Card title="Deployment" icon="rocket" href="/guides/docker">
+    Deploy to production environments
+  </Card>
+</CardGroup>

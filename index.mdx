@@ -1,97 +1,150 @@
 ---
 title: "Introduction"
-description: "Welcome to the new home for your documentation"
+description: "Production-ready RESTful API for user management with complete CRUD operations built with Spring Boot and hexagonal architecture."
 ---
 
-## Setting up
+## Welcome to User Management API
 
-Get your documentation site up and running in minutes.
+User Management API is a production-ready, extensible RESTful service built with **Spring Boot**. It provides endpoints for creating, reading, updating, and deleting user records, following a clean hexagonal (ports and adapters) architecture for maintainability, testability, and flexibility.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
+    title="Quickstart"
+    icon="rocket"
+    href="/quickstart"
   >
-    Edit your docs locally and preview them in real time.
+    Get up and running in minutes with our quick start guide
   </Card>
   <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
-  </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
-  </Card>
-</Columns>
-
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
-
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
+    title="API Reference"
     icon="code"
-    href="/essentials/code"
+    href="/api/overview"
   >
-    Add sample code to demonstrate how to use your product.
+    Explore the complete API documentation
   </Card>
   <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
+    title="Architecture"
+    icon="diagram-project"
+    href="/architecture/overview"
   >
-    Display images and other media.
+    Learn about the hexagonal architecture and design patterns
   </Card>
   <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
+    title="Docker Guide"
+    icon="docker"
+    href="/guides/docker"
   >
-    Write once and reuse across your docs.
+    Deploy with Docker and Docker Compose
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## Key Features
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Complete CRUD Operations" icon="database">
+    Full suite of Create, Read, Update, and Delete operations for user management
+  </Card>
+  <Card title="Hexagonal Architecture" icon="hexagon">
+    Clean separation of concerns with ports and adapters pattern
+  </Card>
+  <Card title="CQRS Pattern" icon="arrows-split-up-and-left">
+    Optimized data access with Command Query Responsibility Segregation
+  </Card>
+  <Card title="OpenAPI/Swagger" icon="book-open">
+    Interactive API documentation with Swagger UI
+  </Card>
+  <Card title="PostgreSQL Persistence" icon="database">
+    Robust data persistence with JPA and PostgreSQL
+  </Card>
+  <Card title="Exception Handling" icon="shield-check">
+    Centralized exception handling with RFC 7807 Problem Details
+  </Card>
+  <Card title="Domain-Driven Design" icon="cubes">
+    Rich business logic with DDD principles
+  </Card>
+  <Card title="CI/CD Ready" icon="rocket">
+    Docker support with Google Cloud Build integration
+  </Card>
+</CardGroup>
+
+## API Endpoints
+
+The API provides five core endpoints for user management:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/users` | Register a new user |
+| `GET` | `/api/v1/users` | Get all users |
+| `GET` | `/api/v1/users/{id}` | Get user by ID |
+| `PUT` | `/api/v1/users/{id}` | Update user by ID |
+| `DELETE` | `/api/v1/users/{id}` | Delete user by ID |
+
+<Note>
+  All endpoints accept and return JSON. The API runs on `http://localhost:8080` by default.
+</Note>
+
+## Design Principles
+
+This project demonstrates modern software engineering practices:
+
+- **Hexagonal Architecture** - Framework-agnostic core with replaceable adapters
+- **CQRS** - Separated read and write operations for optimal performance
+- **Domain-Driven Design** - Business logic expressed through domain models
+- **Dependency Inversion** - High-level modules depend on abstractions, not implementations
+- **Repository Pattern** - Clean data access layer with testable interfaces
+- **Use Case Pattern** - Explicit application capabilities as interfaces
+
+<Tip>
+  The architecture allows you to swap infrastructure components (like the database or REST layer) without touching the core business logic.
+</Tip>
+
+## Quick Example
+
+Here's a quick example of creating a new user:
+
+```bash cURL
+curl -X POST http://localhost:8080/api/v1/users \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "username": "jdoe",
+    "email": "jdoe@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "role": "USER"
+  }'
+```
+
+Response:
+
+```json
+{
+  "id": "0f4df2de-fffb-4a24-9891-381ecf4f0f87",
+  "username": "jdoe",
+  "email": "jdoe@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "role": "USER",
+  "createdAt": "2024-01-15T10:30:00",
+  "updatedAt": "2024-01-15T10:30:00",
+  "active": true
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Get Started"
+    icon="play"
+    href="/quickstart"
+  >
+    Follow the quickstart guide to run the API locally
+  </Card>
+  <Card
+    title="Explore Architecture"
+    icon="sitemap"
+    href="/architecture/overview"
+  >
+    Understand the architectural patterns and principles
+  </Card>
+</CardGroup>
